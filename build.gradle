@@ -1,0 +1,74 @@
+group 'chlx'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: "idea"
+
+compileJava {
+    options.encoding = "utf-8"
+    options.incremental = true
+
+    /* these options suppress warnings on "internal proprietary API", that "may be removed in a future release" */
+    options.fork = true
+    options.forkOptions.executable = "javac"
+    options.compilerArgs << "-XDignore.symbol.file"
+}
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs "lib"
+    }
+}
+
+dependencies {
+    compile group: 'org.javatuples', name: 'javatuples', version: '1.2'
+    compile group: 'it.unimi.dsi', name: 'fastutil', version: '8.1.0'
+    compile 'junit:junit:4.12'
+//    compile fileTree('lib')
+
+    testCompile 'junit:junit:4.12'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src/java"
+        }
+        resources {
+            srcDir "conf"
+            srcDir "data"
+        }
+    }
+    test {
+        java {
+            srcDir "test/java"
+        }
+        resources {
+            srcDir "conf"
+        }
+    }
+}
+
+task dataJar(type: Jar) {
+    dependsOn << [processResources]
+    baseName = "coccoc-data"
+
+    manifest {
+        attributes project.commonAttributes
+    }
+
+    from fileTree (sourceSets.main.output.resourcesDir) {
+        include "data/**"
+    }
+}
+
+task copyCompileAndRuntimeDependencies(type: Sync) {
+    description "Populates directory 'lib'"
+    into "build/libs"
+    from configurations.runtime
+}
+
+task compile {
+    dependsOn << [copyCompileAndRuntimeDependencies, dataJar, build]
+}
