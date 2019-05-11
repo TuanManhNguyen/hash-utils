@@ -22,9 +22,13 @@ repositories {
 }
 
 dependencies {
-    compile group: 'org.javatuples', name: 'javatuples', version: '1.2'
-    compile group: 'it.unimi.dsi', name: 'fastutil', version: '8.1.0'
+    compile 'org.javatuples:javatuples:1.2'
+    compile 'it.unimi.dsi:fastutil:8.1.0'
+    compile 'org.jetbrains:annotations:15.0'
+    compile 'net.jcip:jcip-annotations:1.0'
+    compile 'org.slf4j:slf4j-log4j12:1.7.25'
     compile 'junit:junit:4.12'
+    compile 'net.agkn:hll:1.6.0'
 //    compile fileTree('lib')
 
     testCompile 'junit:junit:4.12'
@@ -52,11 +56,6 @@ sourceSets {
 
 task dataJar(type: Jar) {
     dependsOn << [processResources]
-    baseName = "coccoc-data"
-
-    manifest {
-        attributes project.commonAttributes
-    }
 
     from fileTree (sourceSets.main.output.resourcesDir) {
         include "data/**"
