@@ -71,20 +71,20 @@ public class HybridLogHash {
 		addedAfterGet = true;
 	}
 
-	public void union(HybridLogHash loggingHash) {
-		hll.union(loggingHash.hll);
-		minHash64.union(loggingHash.minHash64);
+	public void union(HybridLogHash that) {
+		hll.union(that.hll);
+		minHash64.union(that.minHash64);
 	}
 
 	public long countIntersect(HybridLogHash loggingHash) {
 		double simIndex = JaccardIndex.indexMinHash(getSignature(), loggingHash.getSignature());
-		return JaccardIndex.countIntersect(cardinality(), loggingHash.cardinality(), simIndex);
+		return (long) (countUnion(loggingHash) * simIndex);
 	}
 
-	public long countUnion(HybridLogHash loggingHash) {
+	public long countUnion(HybridLogHash that) {
 		try {
 			HLL hll = this.hll.clone();
-			hll.union(loggingHash.hll);
+			hll.union(that.hll);
 			return hll.cardinality();
 		} catch (CloneNotSupportedException e) {
 			throw new RuntimeException(e);

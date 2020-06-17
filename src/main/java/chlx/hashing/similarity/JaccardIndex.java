@@ -1,15 +1,13 @@
 package chlx.hashing.similarity;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Author: (づ｡◕‿‿◕｡)づ*
- * Creation date: 2017-06
- *
+ * Author: (づ｡◕‿‿◕｡)づ* Creation date: 2017-06
+ * <p>
  * Calculate the Jaccard Index between sets
  */
 public class JaccardIndex {
@@ -19,7 +17,7 @@ public class JaccardIndex {
 	/**
 	 * Calculate similarity between 2 set
 	 */
-	public static double index(@NotNull Set <?> s1, @NotNull Set <?> s2) {
+	public static double index(@NotNull Set<?> s1, @NotNull Set<?> s2) {
 		if (s1.isEmpty() && s2.isEmpty()) {
 			return 1.0;
 		}
@@ -86,13 +84,14 @@ public class JaccardIndex {
 	 *
 	 * @implSpec if similarity < minSimThreshold then return 0;
 	 */
-	public static double indexMinHashWithMinSimThreshold(double minSimThreshold, @NotNull int[] minhash1, @NotNull int[] minhash2) {
+	public static double indexMinHashWithMinSimThreshold(double minSimThreshold,
+			@NotNull int[] minhash1, @NotNull int[] minhash2) {
 		if (minhash1.length != minhash2.length) {
 			throw new IllegalArgumentException("Min hash lengths must be the same");
 		}
 		int diffCount = 0;
 		int diffMaxThreshold = (int) (minSimThreshold * minhash1.length);
-		for (int i = 0, j = 0; i < minhash1.length && j < minhash2.length;) {
+		for (int i = 0, j = 0; i < minhash1.length && j < minhash2.length; ) {
 			if (minhash1[i] == minhash2[j]) {
 				++i;
 				++j;
@@ -192,11 +191,12 @@ public class JaccardIndex {
 	}
 
 	/**
-	 * @implSpec Calculate similarity between 2 sorted long arrays with unique element
-	 * if similarity < minSimThreshold then return 0;
-	 * this has been optimized for {@link chlx.hashing.lsh.LSHComputer}
+	 * @implSpec Calculate similarity between 2 sorted long arrays with unique element if similarity
+	 * < minSimThreshold then return 0; this has been optimized for {@link
+	 * chlx.hashing.lsh.LSHComputer}
 	 */
-	public static double indexWithMinThreshold(double minSimThreshold, @NotNull long[] s1, @NotNull long[] s2) {
+	public static double indexWithMinThreshold(double minSimThreshold, @NotNull long[] s1,
+			@NotNull long[] s2) {
 		if (s1.length == 0) {
 			if (s2.length == 0) {
 				return 1;
@@ -213,7 +213,8 @@ public class JaccardIndex {
 			return 0;
 		}
 
-		if (s1.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH || s2.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH) {
+		if (s1.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH
+				|| s2.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH) {
 			double sim = index(s1, s2);
 			return sim < minSimThreshold ? 0 : sim;
 		}
@@ -252,8 +253,10 @@ public class JaccardIndex {
 	 *
 	 * @implSpec if similarity < minSimThreshold then return 0;
 	 */
-	public static double indexWithMinThreshold(double minSimThreshold, @NotNull int[] s1, @NotNull int[] s2) {
-		if (s1.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH || s2.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH) {
+	public static double indexWithMinThreshold(double minSimThreshold, @NotNull int[] s1,
+			@NotNull int[] s2) {
+		if (s1.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH
+				|| s2.length < MIN_SIM_THRESHOLD_MIN_WORTHY_LENGTH) {
 			double sim = index(s1, s2);
 			return sim < minSimThreshold ? 0 : sim;
 		}
@@ -296,14 +299,6 @@ public class JaccardIndex {
 		}
 
 		return (double) count / (s1.length + s2.length - count);
-	}
-
-	public static long countIntersect(long count1, long count2, double simIndex) {
-		return (long) ((count1 + count2) * simIndex / (1 + simIndex));
-	}
-
-	public static long countUnion(long count1, long count2, double simIndex) {
-		return (long) ((count1 + count2) / (1 + simIndex));
 	}
 
 }
