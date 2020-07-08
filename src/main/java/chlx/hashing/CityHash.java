@@ -1,5 +1,6 @@
+package chlx.hashing;
 /*
- * Copyright (C) 2012 tamtam180
+ * Copyright (C) 2012 coccoc.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +15,12 @@
  * limitations under the License.
  */
 
-package chlx.hashing;
-
 
 /**
- * @author tamtam180 - kirscheless at gmail.com
  * @see http://google-opensource.blogspot.jp/2011/04/introducing-cityhash.html
  * @see http://code.google.com/p/cityhash/
  *
+ * Fix compability with Clickhouse CityHash
  */
 @SuppressWarnings("JavadocReference")
 public class CityHash {
@@ -30,19 +29,22 @@ public class CityHash {
 	private static final long k1 = 0xb492b66fbe98f273L;
 	private static final long k2 = 0x9ae16a3b2f90404fL;
 	private static final long k3 = 0xc949d7c7509e6557L;
+	private static final long kMul = 0x9ddfea08eb382d69L;
 
 	private static long toLongLE(byte[] b, int i) {
-		return (((long)b[i+7] << 56) +
-				((long)(b[i+6] & 255) << 48) +
-				((long)(b[i+5] & 255) << 40) +
-				((long)(b[i+4] & 255) << 32) +
-				((long)(b[i+3] & 255) << 24) +
-				((b[i+2] & 255) << 16) +
-				((b[i+1] & 255) <<  8) +
-				((b[i+0] & 255) <<  0));
+		return (((long) b[i + 7] << 56) +
+				((long) (b[i + 6] & 255) << 48) +
+				((long) (b[i + 5] & 255) << 40) +
+				((long) (b[i + 4] & 255) << 32) +
+				((long) (b[i + 3] & 255) << 24) +
+				((b[i + 2] & 255) << 16) +
+				((b[i + 1] & 255) << 8) +
+				((b[i + 0] & 255) << 0));
 	}
-	private  static int toIntLE(byte[] b, int i) {
-		return (((b[i+3] & 255) << 24) + ((b[i+2] & 255) << 16) + ((b[i+1] & 255) << 8) + ((b[i+0] & 255) << 0));
+
+	private static int toIntLE(byte[] b, int i) {
+		return (((b[i + 3] & 255) << 24) + ((b[i + 2] & 255) << 16) + ((b[i + 1] & 255) << 8) + (
+				(b[i + 0] & 255) << 0));
 	}
 
 	private static long fetch64(byte[] s, int pos) {
@@ -54,7 +56,7 @@ public class CityHash {
 	}
 
 	private static long rotate(long val, int shift) {
-		return shift == 0 ? val : (val >>> shift) | (val << (64 - shift));
+		return (val >>> shift) | (val << (64 - shift));
 	}
 
 	private static long rotateByAtLeast1(long val, int shift) {
@@ -62,10 +64,10 @@ public class CityHash {
 	}
 
 	private static long shiftMix(long val) {
-		return val ^ (val >>> 47);
+		long value = val ^ (val >>> 47);
+		return value;
 	}
 
-	private static final long kMul = 0x9ddfea08eb382d69L;
 	public static long hash128to64(long u, long v) {
 		long a = (u ^ v) * kMul;
 		a ^= (a >>> 47);
@@ -121,7 +123,7 @@ public class CityHash {
 		a += x;
 		a += y;
 		b += rotate(a, 44);
-		return new long[]{ a + z, b + c };
+		return new long[]{a + z, b + c};
 	}
 
 	private static long[] weakHashLen32WithSeeds(byte[] s, int pos, long a, long b) {
@@ -155,7 +157,7 @@ public class CityHash {
 		c = rotate(a, 37);
 		a += fetch64(s, pos + len - 24);
 		c += rotate(a, 7);
-		a += fetch64(s, pos + len -16);
+		a += fetch64(s, pos + len - 16);
 
 		long wf = a + z;
 		long ws = b + rotate(a, 31) + c;
@@ -166,7 +168,6 @@ public class CityHash {
 	}
 
 	public static long cityHash64(byte[] s, int pos, int len) {
-
 		if (len <= 32) {
 			if (len <= 16) {
 				return hashLen0to16(s, pos, len);
@@ -177,24 +178,34 @@ public class CityHash {
 			return hashLen33to64(s, pos, len);
 		}
 
-		long x = fetch64(s, pos + len - 40);
-		long y = fetch64(s, pos + len - 16) + fetch64(s, pos + len - 56);
-		long z = hashLen16(fetch64(s, pos + len - 48) + len, fetch64(s, pos + len - 24));
+		long x = fetch64(s, pos);
+		long y = fetch64(s, pos + len - 16) ^ k1;
+		long z = fetch64(s, pos + len - 56) ^ k0;
 
-		long [] v = weakHashLen32WithSeeds(s, pos + len - 64, len, z);
-		long [] w = weakHashLen32WithSeeds(s, pos + len - 32, y + k1, x);
-		x = x * k1 + fetch64(s, pos + 0);
+		long[] v = weakHashLen32WithSeeds(s, pos + len - 64, len, y);
+		long[] w = weakHashLen32WithSeeds(s, pos + len - 32, len * k1, k0);
+
+		z += shiftMix(v[1]) * k1;
+		x = rotate(z + x, 39) * k1;
+		y = rotate(y, 33) * k1;
 
 		len = (len - 1) & (~63);
+
 		do {
-			x = rotate(x + y + v[0] + fetch64(s, pos + 8), 37) * k1;
+			x = rotate(x + y + v[0] + fetch64(s, pos + 16), 37) * k1;
 			y = rotate(y + v[1] + fetch64(s, pos + 48), 42) * k1;
+
 			x ^= w[1];
-			y += v[0] + fetch64(s, pos + 40);
-			z = rotate(z + w[0], 33) * k1;
+			y ^= v[0];
+
+			z = rotate(z ^ w[0], 33);
 			v = weakHashLen32WithSeeds(s, pos + 0, v[1] * k1, x + w[0]);
-			w = weakHashLen32WithSeeds(s, pos + 32, z + w[1], y + fetch64(s, pos + 16));
-			{ long swap = z; z = x; x = swap; }
+			w = weakHashLen32WithSeeds(s, pos + 32, z + w[1], y);
+
+			long t = z;
+			z = x;
+			x = t;
+
 			pos += 64;
 			len -= 64;
 		} while (len != 0);
@@ -209,6 +220,7 @@ public class CityHash {
 	public static long cityHash64WithSeed(byte[] s, int pos, int len, long seed) {
 		return cityHash64WithSeeds(s, pos, len, k2, seed);
 	}
+
 	public static long cityHash64WithSeeds(byte[] s, int pos, int len, long seed0, long seed1) {
 		return hashLen16(cityHash64(s, pos, len) - seed0, seed1);
 	}
@@ -246,7 +258,7 @@ public class CityHash {
 		a = hashLen16(a, c);
 		b = hashLen16(d, b);
 
-		return new long[]{ a ^ b, hashLen16(b, a) };
+		return new long[]{a ^ b, hashLen16(b, a)};
 
 	}
 
@@ -275,7 +287,11 @@ public class CityHash {
 			z = rotate(z + w[0], 33) * k1;
 			v = weakHashLen32WithSeeds(s, pos + 0, v[1] * k1, x + w[0]);
 			w = weakHashLen32WithSeeds(s, pos + 32, z + w[1], y + fetch64(s, pos + 16));
-			{ long swap = z; z = x; x = swap; }
+			{
+				long swap = z;
+				z = x;
+				x = swap;
+			}
 			pos += 64;
 			x = rotate(x + y + v[0] + fetch64(s, pos + 8), 37) * k1;
 			y = rotate(y + v[1] + fetch64(s, pos + 48), 42) * k1;
@@ -284,7 +300,11 @@ public class CityHash {
 			z = rotate(z + w[0], 33) * k1;
 			v = weakHashLen32WithSeeds(s, pos, v[1] * k1, x + w[0]);
 			w = weakHashLen32WithSeeds(s, pos + 32, z + w[1], y + fetch64(s, pos + 16));
-			{ long swap = z; z = x; x = swap; }
+			{
+				long swap = z;
+				z = x;
+				x = swap;
+			}
 			pos += 64;
 			len -= 128;
 		} while (len >= 128);
@@ -313,7 +333,6 @@ public class CityHash {
 	}
 
 	public static long[] cityHash128(byte[] s, int pos, int len) {
-
 		if (len >= 16) {
 			return cityHash128WithSeed(
 					s, pos + 16,
@@ -325,7 +344,7 @@ public class CityHash {
 			return cityHash128WithSeed(
 					new byte[0], 0, 0,
 					fetch64(s, pos + 0) ^ (len * k0),
-					fetch64(s, pos + len -8) ^ k1
+					fetch64(s, pos + len - 8) ^ k1
 			);
 		} else {
 			return cityHash128WithSeed(s, pos, len, k0, k1);
@@ -334,7 +353,9 @@ public class CityHash {
 	}
 
 	public static long cityHash64(String s) {
-		return cityHash64(s.getBytes(), 0, s.length());
+		byte[] b = s.getBytes();
+		return cityHash64(b, 0, b.length);
 	}
+
 
 }
